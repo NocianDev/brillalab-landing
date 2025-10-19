@@ -206,10 +206,10 @@ export default function BrillaLabLanding() {
               <p className="text-sm text-slate-600">Monterrey, México</p>
 
               <h4 className="mt-4 font-semibold">Correo</h4>
-              <p className="text-sm text-slate-600">hola@brillalab.com</p>
+              <p className="text-sm text-slate-600">angeldevsweb@gmail.com</p>
 
               <h4 className="mt-4 font-semibold">Teléfono</h4>
-              <p className="text-sm text-slate-600">+52 81 0000 0000</p>
+              <p className="text-sm text-slate-600">+52 826 127 1886</p>
             </div>
           </div>
 
