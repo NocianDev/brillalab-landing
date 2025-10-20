@@ -1,12 +1,21 @@
 import React, { useState } from "react";
 
-// BrillaLab - Landing Page
+// BrillaLab - Landing Page (con enlaces para WhatsApp y mail)
 // Single-file React component styled with TailwindCSS.
 // Usage: paste into App.jsx / App.tsx of a React project that has Tailwind configured.
 
 export default function BrillaLabLanding() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [sent, setSent] = useState(false);
+
+  // Enlaces configurables
+  const phoneE164 = "528261271886"; // formato internacional sin + ni espacios (ej: 521234567890)
+  const defaultWaMessage = "¡Hola! Estoy interesado en tus servicios.\n¿Podrías darme más información?";
+  const waLink = `https://wa.me/${phoneE164}?text=${encodeURIComponent(defaultWaMessage)}`;
+  const mailAddress = "angeldevsweb@gmail.com";
+  const mailSubject = "Contacto desde sitio — BrillaLab";
+  const mailBodyExample = "Hola, me interesa recibir información sobre...";
+  const mailLink = `mailto:${mailAddress}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBodyExample)}`;
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -206,10 +215,28 @@ export default function BrillaLabLanding() {
               <p className="text-sm text-slate-600">Monterrey, México</p>
 
               <h4 className="mt-4 font-semibold">Correo</h4>
-              <p className="text-sm text-slate-600">angeldevsweb@gmail.com</p>
+              <a
+                href={mailLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block text-sm text-slate-600 hover:underline transition-colors"
+                aria-label="Enviar correo a BrillaLab"
+              >
+                {mailAddress}
+              </a>
 
               <h4 className="mt-4 font-semibold">Teléfono</h4>
-              <p className="text-sm text-slate-600">+52 826 127 1886</p>
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block text-sm text-slate-600 hover:underline transition-colors"
+                aria-label="Abrir WhatsApp con BrillaLab"
+              >
+                +52 826 127 1886
+              </a>
+
+              <p className="mt-4 text-xs text-slate-500">Al hacer clic en el teléfono se abrirá WhatsApp (web o app). Al hacer clic en el correo se abrirá tu cliente de email.</p>
             </div>
           </div>
 
