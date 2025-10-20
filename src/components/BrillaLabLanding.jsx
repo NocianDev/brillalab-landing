@@ -1,15 +1,18 @@
+// src/App.jsx
 import React, { useState } from "react";
 
-// BrillaLab - Landing Page (con enlaces para WhatsApp y mail)
+// BrillaLab - Landing Page (con envío de formulario a /api/contact)
 // Single-file React component styled with TailwindCSS.
 // Usage: paste into App.jsx / App.tsx of a React project that has Tailwind configured.
 
 export default function BrillaLabLanding() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
 
   // Enlaces configurables
-  const phoneE164 = "528261271886"; // formato internacional sin + ni espacios (ej: 521234567890)
+  const phoneE164 = "528261271886"; // formato internacional sin + ni espacios
   const defaultWaMessage = "¡Hola! Estoy interesado en tus servicios.\n¿Podrías darme más información?";
   const waLink = `https://wa.me/${phoneE164}?text=${encodeURIComponent(defaultWaMessage)}`;
   const mailAddress = "angeldevsweb@gmail.com";
@@ -17,16 +20,61 @@ export default function BrillaLabLanding() {
   const mailBodyExample = "Hola, me interesa recibir información sobre...";
   const mailLink = `mailto:${mailAddress}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBodyExample)}`;
 
+  // URL del API: usa '/api/contact' si agregaste "proxy" en package.json del frontend,
+  // o cambia a 'http://localhost:4000/api/contact' si no usas proxy.
+  const API_URL = "http://localhost:4000/api/contact";
+
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((s) => ({ ...s, [name]: value }));
   }
 
-  function handleSubmit(e) {
+  function validateEmail(email) {
+    // validación ligera
+    return /\S+@\S+\.\S+/.test(email);
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
-    // Simula envío
-    setSent(true);
-    setTimeout(() => setSent(false), 4000);
+    setErrorMsg(null);
+
+    // Validación cliente
+    if (!form.name.trim() || !form.email.trim()) {
+      setErrorMsg("Por favor completa nombre y correo.");
+      return;
+    }
+    if (!validateEmail(form.email)) {
+      setErrorMsg("Por favor ingresa un correo válido.");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const msg = data.error || "Error al enviar el formulario";
+        setErrorMsg(msg);
+        setSending(false);
+        return;
+      }
+
+      // éxito
+      setSent(true);
+      setForm({ name: "", email: "", message: "" });
+      setTimeout(() => setSent(false), 4000);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("No se pudo conectar con el servidor. Revisa la consola del navegador.");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -122,7 +170,7 @@ export default function BrillaLabLanding() {
           <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { title: "Identidad de marca", desc: "Logos, paletas, y guías que cuentan tu historia.", icon: "🎨" },
-              { title: "Web a medida", desc: "Landing pages y e‑commerce optimizados para conversión.", icon: "💻" },
+              { title: "Web a medida", desc: "Landing pages y e-commerce optimizados para conversión.", icon: "💻" },
               { title: "Campañas creativas", desc: "Social ads y contenidos que conectan con tu audiencia.", icon: "📣" },
               { title: "Soporte & crecimiento", desc: "Estrategia de crecimiento y mantenimiento continuo.", icon: "🚀" },
             ].map((s) => (
@@ -245,16 +293,48 @@ export default function BrillaLabLanding() {
             <p className="text-sm text-slate-600">Responderemos en menos de 48 horas hábiles.</p>
 
             <label className="block mt-4 text-sm">Nombre</label>
-            <input name="name" value={form.name} onChange={handleChange} required className="mt-1 w-full p-3 rounded-md border" placeholder="Tu nombre" />
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              className="mt-1 w-full p-3 rounded-md border"
+              placeholder="Tu nombre"
+            />
 
             <label className="block mt-4 text-sm">Correo</label>
-            <input name="email" type="email" value={form.email} onChange={handleChange} required className="mt-1 w-full p-3 rounded-md border" placeholder="correo@ejemplo.com" />
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="mt-1 w-full p-3 rounded-md border"
+              placeholder="correo@ejemplo.com"
+            />
 
             <label className="block mt-4 text-sm">Mensaje</label>
-            <textarea name="message" value={form.message} onChange={handleChange} rows={4} className="mt-1 w-full p-3 rounded-md border" placeholder="Cuéntanos sobre tu proyecto"></textarea>
+            <textarea
+              name="message"
+              value={form.message}
+              onChange={handleChange}
+              rows={4}
+              className="mt-1 w-full p-3 rounded-md border"
+              placeholder="Cuéntanos sobre tu proyecto"
+            />
+
+            {errorMsg && <p className="mt-3 text-sm text-red-600">{errorMsg}</p>}
 
             <div className="mt-6 flex items-center gap-4">
-              <button type="submit" className="px-5 py-3 rounded-lg bg-gradient-to-r from-pink-500 to-yellow-400 text-white font-semibold shadow">Enviar</button>
+              <button
+                type="submit"
+                disabled={sending}
+                className={`px-5 py-3 rounded-lg text-white font-semibold shadow ${
+                  sending ? "bg-gray-300 cursor-not-allowed" : "bg-gradient-to-r from-pink-500 to-yellow-400"
+                }`}
+              >
+                {sending ? "Enviando..." : "Enviar"}
+              </button>
               {sent && <span className="text-sm text-green-600">¡Mensaje enviado!</span>}
             </div>
           </form>
@@ -275,3 +355,4 @@ export default function BrillaLabLanding() {
     </div>
   );
 }
+
