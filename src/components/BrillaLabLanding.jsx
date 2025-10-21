@@ -1,8 +1,8 @@
 // src/App.jsx
 import React, { useEffect, useState, useCallback } from "react";
-import { supabase } from "./supabaseClient";
+import { insertContact } from "./supabaseClient";
 
-// BrillaLab - con Supabase + IndexedDB offline fallback
+/* BrillaLab - con Supabase + IndexedDB offline fallback */
 export default function BrillaLabLanding() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [sent, setSent] = useState(false);
@@ -100,9 +100,7 @@ export default function BrillaLabLanding() {
   // ----- Supabase send -----
   async function sendToSupabase(payload) {
     // payload: { name, email, message }
-    const { data, error } = await supabase.from("contacts").insert([payload]);
-    if (error) throw error;
-    return data;
+    return await insertContact(payload);
   }
 
   // ----- flush queued contacts when online -----
@@ -116,17 +114,17 @@ export default function BrillaLabLanding() {
 
       for (const item of queued) {
         try {
-          // intenta enviar cada item a Supabase
+          console.log('Intentando enviar queued item a Supabase:', item);
           await sendToSupabase({
             name: item.name,
             email: item.email,
             message: item.message,
           });
-          // si no lanza error: eliminar del IDB
           await deleteFromIDB(item.id);
+          console.log('Queued item enviado y eliminado del IDB:', item.id);
         } catch (err) {
-          // si falla para este item, dejamos los demás para reintentar más tarde
           console.warn("No se pudo enviar queued item a Supabase:", err);
+          // Si falla uno, detenemos aquí para reintentar más tarde.
           break;
         }
       }
@@ -181,6 +179,7 @@ export default function BrillaLabLanding() {
         setSent(true);
         setTimeout(() => setSent(false), 3000);
         setErrorMsg(null);
+        console.log('Guardado localmente (offline).');
       } catch (err) {
         console.error("Error guardando en IDB:", err);
         setErrorMsg("Error guardando localmente.");
@@ -193,18 +192,22 @@ export default function BrillaLabLanding() {
 
     // ONLINE: intenta enviar a Supabase; si falla, guarda en IDB
     try {
-      await sendToSupabase(payload);
+      console.log('Enviando a Supabase...', payload);
+      const res = await sendToSupabase(payload);
+      console.log('Supabase respuesta:', res);
       setForm({ name: "", email: "", message: "" });
       setSent(true);
       setTimeout(() => setSent(false), 3000);
       setErrorMsg(null);
     } catch (err) {
       console.warn("Enviar a Supabase falló, guardando localmente:", err);
+      // añade info de error en mensaje para que lo veas
+      const friendly = err?.message || 'Error al enviar';
       try {
         await saveToIDB(payload);
         setForm({ name: "", email: "", message: "" });
         setSent(true);
-        setErrorMsg("No se pudo conectar a Supabase; datos guardados localmente y se reintentará.");
+        setErrorMsg(`No se pudo conectar a Supabase; datos guardados localmente. (${friendly})`);
       } catch (idbErr) {
         console.error("Error saving to IDB after supabase fail:", idbErr);
         setErrorMsg("Error al guardar el contacto.");
@@ -257,7 +260,6 @@ export default function BrillaLabLanding() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
-        {/* Aquí puedes mantener el resto de tu diseño (hero, features...) */}
         <section id="contact" className="mt-6 mb-12 grid md:grid-cols-2 gap-8 items-start">
           <div className="p-6 rounded-2xl bg-gradient-to-br from-cyan-100 to-purple-100 shadow">
             <h3 className="text-2xl font-extrabold">Hablemos de tu proyecto</h3>
