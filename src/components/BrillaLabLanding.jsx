@@ -1,155 +1,36 @@
-// src/components/BrillaLabLanding.jsx
-import React, { useEffect, useState, useCallback } from "react";
-import { insertContact } from "../supabaseClient.js"; // ruta desde components -> src/supabaseClient.js
+// src/App.jsx
+import React, { useState } from "react";
+
+// BrillaLab - Landing Page (con envío de formulario a /api/contact)
+// Single-file React component styled with TailwindCSS.
+// Usage: paste into App.jsx / App.tsx of a React project that has Tailwind configured.
 
 export default function BrillaLabLanding() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [queuedCount, setQueuedCount] = useState(0);
 
-  // ----- IndexedDB helpers -----
-  function openIDB() {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open("brillalab_db_v1", 1);
-      req.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains("contacts")) {
-          db.createObjectStore("contacts", { keyPath: "id", autoIncrement: true });
-        }
-      };
-      req.onsuccess = (e) => resolve(e.target.result);
-      req.onerror = () => reject(req.error);
-    });
-  }
+  // Enlaces configurables
+  const phoneE164 = "528261271886"; // formato internacional sin + ni espacios
+  const defaultWaMessage = "¡Hola! Estoy interesado en tus servicios.\n¿Podrías darme más información?";
+  const waLink = `https://wa.me/${phoneE164}?text=${encodeURIComponent(defaultWaMessage)}`;
+  const mailAddress = "angeldevsweb@gmail.com";
+  const mailSubject = "Contacto desde sitio — BrillaLab";
+  const mailBodyExample = "Hola, me interesa recibir información sobre...";
+  const mailLink = `mailto:${mailAddress}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBodyExample)}`;
 
-  function saveToIDB(contact) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const db = await openIDB();
-        const tx = db.transaction("contacts", "readwrite");
-        const store = tx.objectStore("contacts");
-        const req = store.add({ ...contact, created_at: new Date().toISOString() });
-        req.onsuccess = () => {
-          resolve(req.result);
-          db.close();
-        };
-        req.onerror = () => {
-          reject(req.error);
-          db.close();
-        };
-      } catch (err) {
-        reject(err);
-      }
-    });
-  }
+  // URL del API: usa '/api/contact' si agregaste "proxy" en package.json del frontend,
+  // o cambia a 'http://localhost:4000/api/contact' si no usas proxy.
+  const API_URL = "http://localhost:4000/api/contact";
 
-  function getAllFromIDB() {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const db = await openIDB();
-        const tx = db.transaction("contacts", "readonly");
-        const store = tx.objectStore("contacts");
-        const req = store.getAll();
-        req.onsuccess = () => {
-          resolve(req.result || []);
-          db.close();
-        };
-        req.onerror = () => {
-          reject(req.error);
-          db.close();
-        };
-      } catch (err) {
-        reject(err);
-      }
-    });
-  }
-
-  function deleteFromIDB(id) {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const db = await openIDB();
-        const tx = db.transaction("contacts", "readwrite");
-        const store = tx.objectStore("contacts");
-        const req = store.delete(id);
-        req.onsuccess = () => {
-          resolve(true);
-          db.close();
-        };
-        req.onerror = () => {
-          reject(req.error);
-          db.close();
-        };
-      } catch (err) {
-        reject(err);
-      }
-    });
-  }
-
-  async function refreshQueuedCount() {
-    try {
-      const all = await getAllFromIDB();
-      setQueuedCount(all.length);
-    } catch {
-      setQueuedCount(0);
-    }
-  }
-
-  // ----- Supabase send -----
-  async function sendToSupabase(payload) {
-    return await insertContact(payload);
-  }
-
-  // ----- flush queued contacts when online -----
-  const flushQueuedContacts = useCallback(async () => {
-    try {
-      const queued = await getAllFromIDB();
-      if (!queued || queued.length === 0) {
-        setQueuedCount(0);
-        return;
-      }
-
-      for (const item of queued) {
-        try {
-          console.log("Intentando enviar queued item a Supabase:", item);
-          await sendToSupabase({
-            name: item.name,
-            email: item.email,
-            message: item.message,
-          });
-          await deleteFromIDB(item.id);
-          console.log("Queued item enviado y eliminado del IDB:", item.id);
-        } catch (err) {
-          console.warn("No se pudo enviar queued item a Supabase:", err);
-          // Si falla uno, detenemos aquí para reintentar más tarde.
-          break;
-        }
-      }
-    } catch (err) {
-      console.error("flushQueuedContacts error:", err);
-    } finally {
-      await refreshQueuedCount();
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshQueuedCount();
-    if (navigator.onLine) flushQueuedContacts();
-    function onOnline() {
-      flushQueuedContacts();
-    }
-    window.addEventListener("online", onOnline);
-    return () => window.removeEventListener("online", onOnline);
-  }, [flushQueuedContacts]);
-
-  // ----- form handling -----
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((s) => ({ ...s, [name]: value }));
   }
 
   function validateEmail(email) {
+    // validación ligera
     return /\S+@\S+\.\S+/.test(email);
   }
 
@@ -157,6 +38,7 @@ export default function BrillaLabLanding() {
     e.preventDefault();
     setErrorMsg(null);
 
+    // Validación cliente
     if (!form.name.trim() || !form.email.trim()) {
       setErrorMsg("Por favor completa nombre y correo.");
       return;
@@ -167,77 +49,39 @@ export default function BrillaLabLanding() {
     }
 
     setSending(true);
-    const payload = { name: form.name.trim(), email: form.email.trim(), message: form.message.trim() };
-
-    if (!navigator.onLine) {
-      // OFFLINE: guarda en IndexedDB
-      try {
-        await saveToIDB(payload);
-        setForm({ name: "", email: "", message: "" });
-        setSent(true);
-        setTimeout(() => setSent(false), 3000);
-        setErrorMsg(null);
-        console.log("Guardado localmente (offline).");
-      } catch (err) {
-        console.error("Error guardando en IDB:", err);
-        setErrorMsg("Error guardando localmente.");
-      } finally {
-        await refreshQueuedCount();
-        setSending(false);
-      }
-      return;
-    }
-
-    // ONLINE: intenta enviar a Supabase; si falla, guarda en IDB
     try {
-      console.log("Enviando a Supabase...", payload);
-      const res = await sendToSupabase(payload);
-      console.log("Supabase respuesta:", res);
-      setForm({ name: "", email: "", message: "" });
-      setSent(true);
-      setTimeout(() => setSent(false), 3000);
-      setErrorMsg(null);
-    } catch (err) {
-      console.warn("Enviar a Supabase falló, guardando localmente:", err);
-      const friendly = err?.message || "Error al enviar";
-      try {
-        await saveToIDB(payload);
-        setForm({ name: "", email: "", message: "" });
-        setSent(true);
-        setErrorMsg(`No se pudo conectar a Supabase; datos guardados localmente. (${friendly})`);
-      } catch (idbErr) {
-        console.error("Error saving to IDB after supabase fail:", idbErr);
-        setErrorMsg("Error al guardar el contacto.");
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const msg = data.error || "Error al enviar el formulario";
+        setErrorMsg(msg);
+        setSending(false);
+        return;
       }
+
+      // éxito
+      setSent(true);
+      setForm({ name: "", email: "", message: "" });
+      setTimeout(() => setSent(false), 4000);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("No se pudo conectar con el servidor. Revisa la consola del navegador.");
     } finally {
       setSending(false);
-      await refreshQueuedCount();
     }
   }
 
-  // Export queued entries as JSON file
-  async function handleExport() {
-    try {
-      const all = await getAllFromIDB();
-      const blob = new Blob([JSON.stringify(all, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `brillalab-contacts-${new Date().toISOString()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Export error:", err);
-      alert("No se pudo exportar.");
-    }
-  }
-
-  // ----- UI -----
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-yellow-50 text-slate-900 antialiased">
       <header className="sticky top-0 z-40 backdrop-blur-sm bg-white/60 border-b border-white/30">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <a href="#" className="flex items-center gap-3">
             <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2L15.5 8.5L22 12L15.5 15.5L12 22L8.5 15.5L2 12L8.5 8.5L12 2Z" fill="white" />
@@ -247,21 +91,169 @@ export default function BrillaLabLanding() {
               <h1 className="font-extrabold text-lg leading-none">BrillaLab</h1>
               <p className="text-xs -mt-0.5 text-slate-600">Diseño digital & soluciones creativas</p>
             </div>
-          </div>
+          </a>
 
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-slate-600">
-              Conexión: {navigator.onLine ? <span className="text-green-600">Online</span> : <span className="text-red-600">Offline</span>}
-            </div>
-            <button onClick={handleExport} className="text-sm px-3 py-2 rounded bg-white shadow">
-              Exportar guardados ({queuedCount})
-            </button>
+          <nav className="hidden md:flex gap-6 items-center text-sm font-medium">
+            <a href="#features" className="hover:underline">Servicios</a>
+            <a href="#work" className="hover:underline">Portafolio</a>
+            <a href="#pricing" className="hover:underline">Precios</a>
+            <a href="#contact" className="hover:underline">Contacto</a>
+            <button className="ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 text-white shadow">Empezar</button>
+          </nav>
+
+          <div className="md:hidden">
+            <button aria-label="menu" className="p-2 rounded-md bg-white/80 shadow">☰</button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-12">
-        <section id="contact" className="mt-6 mb-12 grid md:grid-cols-2 gap-8 items-start">
+        {/* HERO */}
+        <section className="grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <span className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 px-3 py-1 rounded-full text-sm font-semibold">Nuevo · Lanzamiento</span>
+
+            <h2 className="mt-6 text-4xl md:text-5xl font-extrabold leading-tight">Colores que cuentan historias, experiencias que convierten.</h2>
+
+            <p className="mt-4 text-slate-700 text-lg">En <strong>BrillaLab</strong> creamos páginas, marcas y productos digitales con identidad propia. Diseño vibrante, interacciones limpias y resultados medibles.</p>
+
+            <div className="mt-6 flex gap-4">
+              <a href="#contact" className="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-gradient-to-r from-pink-500 to-yellow-400 text-white font-semibold shadow-lg">Comenzar</a>
+              <a href="#work" className="inline-flex items-center gap-2 px-4 py-3 rounded-lg border border-pink-200 text-pink-600 font-semibold">Ver portafolio</a>
+            </div>
+
+            <div className="mt-8 grid grid-cols-3 gap-4">
+              <div className="p-4 rounded-xl bg-white/90 shadow"> 
+                <p className="text-xs text-slate-500">Clientes felices</p>
+                <p className="text-xl font-bold">120+</p>
+              </div>
+              <div className="p-4 rounded-xl bg-white/90 shadow"> 
+                <p className="text-xs text-slate-500">Proyectos entregados</p>
+                <p className="text-xl font-bold">85</p>
+              </div>
+              <div className="p-4 rounded-xl bg-white/90 shadow"> 
+                <p className="text-xs text-slate-500">Premios creativos</p>
+                <p className="text-xl font-bold">6</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="absolute -left-10 -top-10 w-56 h-56 rounded-3xl bg-gradient-to-br from-yellow-300 to-pink-300 opacity-90 blur-3xl transform rotate-6"></div>
+            <div className="absolute -right-12 bottom-6 w-44 h-44 rounded-2xl bg-gradient-to-br from-cyan-300 to-purple-400 opacity-90 blur-2xl transform rotate-12"></div>
+
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-white">
+              <div className="w-full h-80 flex items-center justify-center bg-gradient-to-br from-pink-100 to-purple-200 text-slate-600">
+                <svg width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <rect width="160" height="100" rx="12" fill="white" />
+                  <path d="M10 70 L40 30 L70 60 L100 20 L140 70" stroke="#c026d3" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+              </div>
+              <div className="p-6">
+                <h3 className="text-lg font-bold">Campañas coloridas con estrategia</h3>
+                <p className="mt-2 text-slate-600">Casos reales donde la estética y la conversión trabajan de la mano.</p>
+                <div className="mt-4 flex gap-3">
+                  <button className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium">Ver estudio</button>
+                  <button className="px-4 py-2 rounded-md border border-slate-200">Descargar</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* FEATURES */}
+        <section id="features" className="mt-16">
+          <h3 className="text-2xl font-extrabold">Nuestros servicios</h3>
+          <p className="mt-2 text-slate-600">Diseño, desarrollo y estrategia para proyectos que buscan destacar.</p>
+
+          <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { title: "Identidad de marca", desc: "Logos, paletas, y guías que cuentan tu historia.", icon: "🎨" },
+              { title: "Web a medida", desc: "Landing pages y e-commerce optimizados para conversión.", icon: "💻" },
+              { title: "Campañas creativas", desc: "Social ads y contenidos que conectan con tu audiencia.", icon: "📣" },
+              { title: "Soporte & crecimiento", desc: "Estrategia de crecimiento y mantenimiento continuo.", icon: "🚀" },
+            ].map((s) => (
+              <article key={s.title} className="p-6 rounded-2xl bg-white shadow hover:scale-[1.02] transition-transform">
+                <div className="text-3xl">{s.icon}</div>
+                <h4 className="mt-4 font-semibold">{s.title}</h4>
+                <p className="mt-2 text-slate-600 text-sm">{s.desc}</p>
+                <a href="#contact" className="mt-4 inline-block text-sm font-semibold text-pink-600">Solicitar</a>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* WORK / GALLERY */}
+        <section id="work" className="mt-16">
+          <h3 className="text-2xl font-extrabold">Portafolio</h3>
+          <p className="mt-2 text-slate-600">Algunos proyectos destacados — color, propósito y resultado.</p>
+
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n} className="rounded-xl overflow-hidden bg-white shadow">
+                <div className="w-full h-44 flex items-center justify-center bg-gradient-to-br from-yellow-100 to-cyan-100 text-slate-600">
+                <svg width="120" height="64" viewBox="0 0 120 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                  <rect width="120" height="64" rx="8" fill="white" />
+                  <path d="M8 48 L30 20 L56 44 L84 12 L112 48" stroke="#06b6d4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                </svg>
+                <span className="sr-only">Proyecto {n}</span>
+              </div>
+                <div className="p-4">
+                  <h5 className="font-semibold">Proyecto {n}</h5>
+                  <p className="text-sm text-slate-600 mt-2">Solución creativa y centrada en el usuario con enfoque en identidad y rendimiento.</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* PRICING */}
+        <section id="pricing" className="mt-16">
+          <h3 className="text-2xl font-extrabold">Planes simples y claros</h3>
+          <p className="mt-2 text-slate-600">Empieza con algo ligero y escala a medida que creces.</p>
+
+          <div className="mt-6 flex flex-col md:flex-row gap-6">
+            <div className="flex-1 p-6 rounded-2xl bg-gradient-to-br from-white to-pink-50 shadow">
+              <h4 className="font-bold text-xl">Starter</h4>
+              <p className="mt-2 text-slate-600">Ideal para proyectos personales y pruebas de concepto.</p>
+              <p className="mt-4 text-3xl font-extrabold">$199</p>
+              <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                <li>Landing page</li>
+                <li>1 revisión</li>
+                <li>Soporte por 2 semanas</li>
+              </ul>
+              <button className="mt-6 px-4 py-2 rounded-md bg-white border">Elegir</button>
+            </div>
+
+            <div className="flex-1 p-6 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-lg">
+              <h4 className="font-bold text-xl">Pro</h4>
+              <p className="mt-2">Para startups y negocios que buscan escalar.</p>
+              <p className="mt-4 text-3xl font-extrabold">$899</p>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li>Web completa</li>
+                <li>3 revisiones</li>
+                <li>Soporte por 2 meses</li>
+              </ul>
+              <button className="mt-6 px-4 py-2 rounded-md bg-white text-pink-600 font-bold">Contratar</button>
+            </div>
+
+            <div className="flex-1 p-6 rounded-2xl bg-white shadow">
+              <h4 className="font-bold text-xl">Enterprise</h4>
+              <p className="mt-2 text-slate-600">Soluciones a medida para equipos grandes.</p>
+              <p className="mt-4 text-3xl font-extrabold">A medida</p>
+              <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                <li>Onboarding completo</li>
+                <li>Revisiones ilimitadas</li>
+                <li>Soporte prioritario</li>
+              </ul>
+              <button className="mt-6 px-4 py-2 rounded-md border">Contactar</button>
+            </div>
+          </div>
+        </section>
+
+        {/* CONTACT */}
+        <section id="contact" className="mt-16 mb-12 grid md:grid-cols-2 gap-8 items-start">
           <div className="p-6 rounded-2xl bg-gradient-to-br from-cyan-100 to-purple-100 shadow">
             <h3 className="text-2xl font-extrabold">Hablemos de tu proyecto</h3>
             <p className="mt-2 text-slate-700">Cuéntanos tu idea y armamos un plan con estética y resultados.</p>
@@ -271,37 +263,96 @@ export default function BrillaLabLanding() {
               <p className="text-sm text-slate-600">Monterrey, México</p>
 
               <h4 className="mt-4 font-semibold">Correo</h4>
-              <p className="text-sm text-slate-600">angeldevsweb@gmail.com</p>
+              <a
+                href={mailLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block text-sm text-slate-600 hover:underline transition-colors"
+                aria-label="Enviar correo a BrillaLab"
+              >
+                {mailAddress}
+              </a>
 
-              <p className="mt-4 text-xs text-slate-500">Si estás offline, los mensajes se guardan en tu navegador y se enviarán automáticamente cuando vuelvas a conectarte.</p>
+              <h4 className="mt-4 font-semibold">Teléfono</h4>
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block text-sm text-slate-600 hover:underline transition-colors"
+                aria-label="Abrir WhatsApp con BrillaLab"
+              >
+                +52 826 127 1886
+              </a>
+
+              <p className="mt-4 text-xs text-slate-500">Al hacer clic en el teléfono se abrirá WhatsApp (web o app). Al hacer clic en el correo se abrirá tu cliente de email.</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="p-6 rounded-2xl bg-white shadow">
             <h4 className="font-bold text-lg">Escríbenos</h4>
-            <p className="text-sm text-slate-600">Responderemos pronto.</p>
+            <p className="text-sm text-slate-600">Responderemos en menos de 48 horas hábiles.</p>
 
             <label className="block mt-4 text-sm">Nombre</label>
-            <input name="name" value={form.name} onChange={handleChange} required className="mt-1 w-full p-3 rounded-md border" placeholder="Tu nombre" />
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              className="mt-1 w-full p-3 rounded-md border"
+              placeholder="Tu nombre"
+            />
 
             <label className="block mt-4 text-sm">Correo</label>
-            <input name="email" type="email" value={form.email} onChange={handleChange} required className="mt-1 w-full p-3 rounded-md border" placeholder="correo@ejemplo.com" />
+            <input
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="mt-1 w-full p-3 rounded-md border"
+              placeholder="correo@ejemplo.com"
+            />
 
             <label className="block mt-4 text-sm">Mensaje</label>
-            <textarea name="message" value={form.message} onChange={handleChange} rows={4} className="mt-1 w-full p-3 rounded-md border" placeholder="Cuéntanos sobre tu proyecto"></textarea>
+            <textarea
+              name="message"
+              value={form.message}
+              onChange={handleChange}
+              rows={4}
+              className="mt-1 w-full p-3 rounded-md border"
+              placeholder="Cuéntanos sobre tu proyecto"
+            />
 
             {errorMsg && <p className="mt-3 text-sm text-red-600">{errorMsg}</p>}
 
             <div className="mt-6 flex items-center gap-4">
-              <button type="submit" disabled={sending} className={`px-5 py-3 rounded-lg text-white font-semibold shadow ${sending ? "bg-gray-300 cursor-not-allowed" : "bg-gradient-to-r from-pink-500 to-yellow-400"}`}>
+              <button
+                type="submit"
+                disabled={sending}
+                className={`px-5 py-3 rounded-lg text-white font-semibold shadow ${
+                  sending ? "bg-gray-300 cursor-not-allowed" : "bg-gradient-to-r from-pink-500 to-yellow-400"
+                }`}
+              >
                 {sending ? "Enviando..." : "Enviar"}
               </button>
-              {sent && <span className="text-sm text-green-600">¡Mensaje guardado/enviado!</span>}
-              <span className="ml-4 text-sm text-slate-500">En cola: {queuedCount}</span>
+              {sent && <span className="text-sm text-green-600">¡Mensaje enviado!</span>}
             </div>
           </form>
         </section>
+
+        {/* FOOTER */}
+        <footer className="mt-12 border-t pt-8 pb-6 text-sm text-slate-600">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 px-6">
+            <p>© {new Date().getFullYear()} BrillaLab. Diseñado con amor y colores.</p>
+            <div className="flex items-center gap-4">
+              <a href="#" className="hover:underline">Términos</a>
+              <a href="#" className="hover:underline">Privacidad</a>
+              <a href="#" className="hover:underline">Contacto</a>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );
 }
+
