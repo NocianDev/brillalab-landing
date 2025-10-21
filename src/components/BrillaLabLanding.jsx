@@ -1,8 +1,7 @@
-// src/App.jsx
+// src/components/BrillaLabLanding.jsx
 import React, { useEffect, useState, useCallback } from "react";
-import { insertContact } from "./supabaseClient";
+import { insertContact } from "../supabaseClient.js"; // ruta desde components -> src/supabaseClient.js
 
-/* BrillaLab - con Supabase + IndexedDB offline fallback */
 export default function BrillaLabLanding() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [sent, setSent] = useState(false);
@@ -99,7 +98,6 @@ export default function BrillaLabLanding() {
 
   // ----- Supabase send -----
   async function sendToSupabase(payload) {
-    // payload: { name, email, message }
     return await insertContact(payload);
   }
 
@@ -114,14 +112,14 @@ export default function BrillaLabLanding() {
 
       for (const item of queued) {
         try {
-          console.log('Intentando enviar queued item a Supabase:', item);
+          console.log("Intentando enviar queued item a Supabase:", item);
           await sendToSupabase({
             name: item.name,
             email: item.email,
             message: item.message,
           });
           await deleteFromIDB(item.id);
-          console.log('Queued item enviado y eliminado del IDB:', item.id);
+          console.log("Queued item enviado y eliminado del IDB:", item.id);
         } catch (err) {
           console.warn("No se pudo enviar queued item a Supabase:", err);
           // Si falla uno, detenemos aquí para reintentar más tarde.
@@ -179,7 +177,7 @@ export default function BrillaLabLanding() {
         setSent(true);
         setTimeout(() => setSent(false), 3000);
         setErrorMsg(null);
-        console.log('Guardado localmente (offline).');
+        console.log("Guardado localmente (offline).");
       } catch (err) {
         console.error("Error guardando en IDB:", err);
         setErrorMsg("Error guardando localmente.");
@@ -192,17 +190,16 @@ export default function BrillaLabLanding() {
 
     // ONLINE: intenta enviar a Supabase; si falla, guarda en IDB
     try {
-      console.log('Enviando a Supabase...', payload);
+      console.log("Enviando a Supabase...", payload);
       const res = await sendToSupabase(payload);
-      console.log('Supabase respuesta:', res);
+      console.log("Supabase respuesta:", res);
       setForm({ name: "", email: "", message: "" });
       setSent(true);
       setTimeout(() => setSent(false), 3000);
       setErrorMsg(null);
     } catch (err) {
       console.warn("Enviar a Supabase falló, guardando localmente:", err);
-      // añade info de error en mensaje para que lo veas
-      const friendly = err?.message || 'Error al enviar';
+      const friendly = err?.message || "Error al enviar";
       try {
         await saveToIDB(payload);
         setForm({ name: "", email: "", message: "" });
@@ -235,7 +232,7 @@ export default function BrillaLabLanding() {
     }
   }
 
-  // ----- UI (puedes reutilizar tu markup — aquí pongo la sección de contacto) -----
+  // ----- UI -----
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-yellow-50 text-slate-900 antialiased">
       <header className="sticky top-0 z-40 backdrop-blur-sm bg-white/60 border-b border-white/30">
@@ -253,8 +250,12 @@ export default function BrillaLabLanding() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="text-sm text-slate-600">Conexión: {navigator.onLine ? <span className="text-green-600">Online</span> : <span className="text-red-600">Offline</span>}</div>
-            <button onClick={handleExport} className="text-sm px-3 py-2 rounded bg-white shadow">Exportar guardados ({queuedCount})</button>
+            <div className="text-sm text-slate-600">
+              Conexión: {navigator.onLine ? <span className="text-green-600">Online</span> : <span className="text-red-600">Offline</span>}
+            </div>
+            <button onClick={handleExport} className="text-sm px-3 py-2 rounded bg-white shadow">
+              Exportar guardados ({queuedCount})
+            </button>
           </div>
         </div>
       </header>
