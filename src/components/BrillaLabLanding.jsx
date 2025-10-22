@@ -1,9 +1,6 @@
-// src/App.jsx
+// src/components/BrillaLabLanding.jsx
 import React, { useState } from "react";
-
-// BrillaLab - Landing Page (con envío de formulario a /api/contact)
-// Single-file React component styled with TailwindCSS.
-// Usage: paste into App.jsx / App.tsx of a React project that has Tailwind configured.
+import { supabase } from "../lib/supabaseClient";
 
 export default function BrillaLabLanding() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
@@ -11,8 +8,8 @@ export default function BrillaLabLanding() {
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
-  // Enlaces configurables
-  const phoneE164 = "528261271886"; // formato internacional sin + ni espacios
+  // Contact links (configura si quieres)
+  const phoneE164 = "528261271886";
   const defaultWaMessage = "¡Hola! Estoy interesado en tus servicios.\n¿Podrías darme más información?";
   const waLink = `https://wa.me/${phoneE164}?text=${encodeURIComponent(defaultWaMessage)}`;
   const mailAddress = "angeldevsweb@gmail.com";
@@ -20,17 +17,12 @@ export default function BrillaLabLanding() {
   const mailBodyExample = "Hola, me interesa recibir información sobre...";
   const mailLink = `mailto:${mailAddress}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBodyExample)}`;
 
-  // URL del API: usa '/api/contact' si agregaste "proxy" en package.json del frontend,
-  // o cambia a 'http://localhost:4000/api/contact' si no usas proxy.
-  const API_URL = "http://localhost:4000/api/contact";
-
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((s) => ({ ...s, [name]: value }));
   }
 
   function validateEmail(email) {
-    // validación ligera
     return /\S+@\S+\.\S+/.test(email);
   }
 
@@ -38,7 +30,6 @@ export default function BrillaLabLanding() {
     e.preventDefault();
     setErrorMsg(null);
 
-    // Validación cliente
     if (!form.name.trim() || !form.email.trim()) {
       setErrorMsg("Por favor completa nombre y correo.");
       return;
@@ -50,28 +41,26 @@ export default function BrillaLabLanding() {
 
     setSending(true);
     try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+      const payload = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        message: form.message.trim() || null,
+      };
 
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        const msg = data.error || "Error al enviar el formulario";
-        setErrorMsg(msg);
+      const { data, error } = await supabase.from("contacts").insert([payload]);
+      if (error) {
+        console.error("Supabase insert error:", error);
+        setErrorMsg(error.message || "Error al enviar el formulario");
         setSending(false);
         return;
       }
 
-      // éxito
       setSent(true);
       setForm({ name: "", email: "", message: "" });
       setTimeout(() => setSent(false), 4000);
     } catch (err) {
       console.error(err);
-      setErrorMsg("No se pudo conectar con el servidor. Revisa la consola del navegador.");
+      setErrorMsg("No se pudo conectar con Supabase. Revisa la consola.");
     } finally {
       setSending(false);
     }
@@ -355,4 +344,3 @@ export default function BrillaLabLanding() {
     </div>
   );
 }
-
