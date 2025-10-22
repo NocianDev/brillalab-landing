@@ -33,7 +33,7 @@ export default function BrillaLabLanding() {
   const defaultWaMessage = "¡Hola! Estoy interesado en tus servicios.\n¿Podrías darme más información?";
   const waLink = `https://wa.me/${phoneE164}?text=${encodeURIComponent(defaultWaMessage)}`;
   const mailAddress = "angeldevsweb@gmail.com";
-  const mailSubject = "Contacto desde sitio — BrillaLab";
+  const mailSubject = "Contacto desde sitio — Nova Ypsilon Tech";
   const mailBodyExample = "Hola, me interesa recibir información sobre...";
   const mailLink = `mailto:${mailAddress}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBodyExample)}`;
 
@@ -124,7 +124,7 @@ export default function BrillaLabLanding() {
 
             <h2 className="mt-6 text-4xl md:text-5xl font-extrabold leading-tight">Colores que cuentan historias, experiencias que convierten.</h2>
 
-            <p className="mt-4 text-slate-700 text-lg">En <strong>BrillaLab</strong> creamos páginas, marcas y productos digitales con identidad propia. Diseño vibrante, interacciones limpias y resultados medibles.</p>
+            <p className="mt-4 text-slate-700 text-lg">En <strong>Nova Ypsilon Tech</strong> creamos páginas, marcas y productos digitales con identidad propia. Diseño vibrante, interacciones limpias y resultados medibles.</p>
 
             <div className="mt-6 flex gap-4">
               <a href="#contact" className="inline-flex items-center gap-3 px-5 py-3 rounded-lg bg-gradient-to-r from-pink-500 to-yellow-400 text-white font-semibold shadow-lg">Comenzar</a>
@@ -286,7 +286,7 @@ export default function BrillaLabLanding() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-1 inline-block text-sm text-slate-600 hover:underline transition-colors"
-                aria-label="Enviar correo a BrillaLab"
+                aria-label="Enviar correo a Nova Ypsilon Tech"
               >
                 {mailAddress}
               </a>
@@ -297,7 +297,7 @@ export default function BrillaLabLanding() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-1 inline-block text-sm text-slate-600 hover:underline transition-colors"
-                aria-label="Abrir WhatsApp con BrillaLab"
+                aria-label="Abrir WhatsApp con Nova Ypsilon Tech"
               >
                 +52 826 127 1886
               </a>
@@ -361,7 +361,7 @@ export default function BrillaLabLanding() {
         {/* FOOTER */}
         <footer className="mt-12 border-t pt-8 pb-6 text-sm text-slate-600">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 px-6">
-            <p>© {new Date().getFullYear()} BrillaLab. Diseñado con amor y colores.</p>
+            <p>© {new Date().getFullYear()} Nova Ypsilon Tech. Diseñado con amor y colores.</p>
             <div className="flex items-center gap-4">
               <a href="#" className="hover:underline">Términos</a>
               <a href="#" className="hover:underline">Privacidad</a>
