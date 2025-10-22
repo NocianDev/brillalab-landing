@@ -97,7 +97,7 @@ export default function BrillaLabLanding() {
               </svg>
             </div>
             <div>
-              <h1 className="font-extrabold text-lg leading-none">BrillaLab</h1>
+              <h1 className="font-extrabold text-lg leading-none">Nova Ypsilon Tech</h1>
               <p className="text-xs -mt-0.5 text-slate-600">Diseño digital & soluciones creativas</p>
             </div>
           </a>
