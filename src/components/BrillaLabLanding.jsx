@@ -8,6 +8,26 @@ export default function BrillaLabLanding() {
   const [sending, setSending] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
+  // ================== CONFIG PORTAFOLIO ==================
+  // Ruta por defecto de la imagen (coloca la imagen en public/images/...)
+  const portfolioDefaultImage = "/images/Site_1.png"; // <-- cambia aquí si quieres
+  // URL por defecto a la que apuntan las tarjetas
+  const portfolioDefaultUrl = "https://bright-spark-three.vercel.app/"; // <-- cambia aquí si quieres
+
+  // Lista de items del portafolio. Por defecto se generan 6 cards que usan
+  // la imagen/URL por defecto, pero puedes editar cada objeto para apuntar
+  // a una imagen o URL distinta en el futuro.
+  // Ejemplo de entrada personalizada:
+  // { id: 1, title: 'Proyecto A', image: '/images/proyecto-a.jpg', url: 'https://proyecto-a.com' }
+  const portfolioItems = Array.from({ length: 6 }, (_, i) => ({
+    id: i + 1,
+    title: `Proyecto ${i + 1}`,
+    // Al inicio todas usan la misma imagen y URL; cámbialas individualmente cuando quieras.
+    image: portfolioDefaultImage,
+    url: portfolioDefaultUrl,
+  }));
+  // ======================================================
+
   // Contact links (configura si quieres)
   const phoneE164 = "528261271886";
   const defaultWaMessage = "¡Hola! Estoy interesado en tus servicios.\n¿Podrías darme más información?";
@@ -112,15 +132,15 @@ export default function BrillaLabLanding() {
             </div>
 
             <div className="mt-8 grid grid-cols-3 gap-4">
-              <div className="p-4 rounded-xl bg-white/90 shadow"> 
+              <div className="p-4 rounded-xl bg-white/90 shadow">
                 <p className="text-xs text-slate-500">Clientes felices</p>
                 <p className="text-xl font-bold">120+</p>
               </div>
-              <div className="p-4 rounded-xl bg-white/90 shadow"> 
+              <div className="p-4 rounded-xl bg-white/90 shadow">
                 <p className="text-xs text-slate-500">Proyectos entregados</p>
                 <p className="text-xl font-bold">85</p>
               </div>
-              <div className="p-4 rounded-xl bg-white/90 shadow"> 
+              <div className="p-4 rounded-xl bg-white/90 shadow">
                 <p className="text-xs text-slate-500">Premios creativos</p>
                 <p className="text-xl font-bold">6</p>
               </div>
@@ -179,20 +199,29 @@ export default function BrillaLabLanding() {
           <p className="mt-2 text-slate-600">Algunos proyectos destacados — color, propósito y resultado.</p>
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div key={n} className="rounded-xl overflow-hidden bg-white shadow">
-                <div className="w-full h-44 flex items-center justify-center bg-gradient-to-br from-yellow-100 to-cyan-100 text-slate-600">
-                <svg width="120" height="64" viewBox="0 0 120 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                  <rect width="120" height="64" rx="8" fill="white" />
-                  <path d="M8 48 L30 20 L56 44 L84 12 L112 48" stroke="#06b6d4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </svg>
-                <span className="sr-only">Proyecto {n}</span>
-              </div>
+            {portfolioItems.map((item) => (
+              <a
+                key={item.id}
+                href={item.url || portfolioDefaultUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group block rounded-xl overflow-hidden bg-white shadow hover:shadow-lg transition-shadow"
+                aria-label={`Abrir ${item.title}`}
+              >
+                <div className="w-full h-44 relative bg-gray-100">
+                  <img
+                    src={item.image || portfolioDefaultImage}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition-transform transform group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
+                </div>
+
                 <div className="p-4">
-                  <h5 className="font-semibold">Proyecto {n}</h5>
+                  <h5 className="font-semibold">{item.title}</h5>
                   <p className="text-sm text-slate-600 mt-2">Solución creativa y centrada en el usuario con enfoque en identidad y rendimiento.</p>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </section>
